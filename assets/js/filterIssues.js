@@ -1,142 +1,197 @@
+/**
+ * Issue Tracker Filter and Search Script
+ *
+ * Handles client-side filtering of issues by labels/author
+ * and searching by title/description.
+ * Assumes HTML structure with specific IDs:
+ * - #issue-data: A hidden element with a 'data' attribute containing JSON array of issues.
+ * - #filter-issue-form: The form containing label checkboxes and author radio buttons.
+ * - #search-issue-form: The form containing title ('tie') and description ('des') inputs.
+ * - #issues-list: The container element where issue cards will be rendered.
+ */
 document.addEventListener("DOMContentLoaded", function () {
-  // Wait for the DOM to be fully loaded
+  // Wait for the DOM to be fully loaded before running any script logic
 
-  // --- Common Elements ---
+  // --- Common Elements & Data Initialization ---
+  console.log("DOM Loaded. Initializing issue tracker script...");
+
   const issueDataElement = document.getElementById("issue-data");
-  const issueList = document.getElementById("issues-list");
-  let issues = []; // Initialize empty, will be populated if data exists
+  const issueList = document.getElementById("issues-list"); // Container for displaying issues
+  let issues = []; // Initialize empty array to hold all issues
 
+  // Safely get and parse issue data from the DOM
   if (issueDataElement) {
     const issuesJson = issueDataElement.getAttribute("data");
-    try {
-      issues = JSON.parse(issuesJson || "[]"); // Parse JSON, default to empty array if attribute is missing or empty
-      if (!Array.isArray(issues)) {
-        console.error("Parsed issue data is not an array:", issues);
-        issues = []; // Reset to empty array if parsing resulted in non-array
+    if (issuesJson) {
+      try {
+        issues = JSON.parse(issuesJson); // Parse JSON string into an array
+        // Validate that the parsed data is actually an array
+        if (!Array.isArray(issues)) {
+          console.error("Parsed issue data is not an array:", issues);
+          issues = []; // Reset to empty array if parsing resulted in non-array data
+        } else {
+          console.log(`Successfully parsed ${issues.length} issues.`);
+          // Optionally render all issues initially:
+          // renderIssues(issues, issueList);
+        }
+      } catch (error) {
+        console.error(
+          "Error parsing JSON data from #issue-data attribute:",
+          error
+        );
+        issues = []; // Reset to empty array on parsing error
+        if (issueList)
+          issueList.innerHTML =
+            "<p class='text-danger'>Error loading issue data.</p>";
       }
-    } catch (error) {
-      console.error("Error parsing JSON data:", error);
-      issues = []; // Reset to empty array on parsing error
+    } else {
+      console.warn(
+        "Element #issue-data found, but 'data' attribute is empty or missing."
+      );
+      if (issueList) issueList.innerHTML = "<p>No issue data found.</p>";
     }
   } else {
-    console.error("Element with ID 'issue-data' not found.");
+    // Critical error if data source is missing
+    console.error(
+      "Required element with ID 'issue-data' not found. Cannot load issues."
+    );
+    if (issueList)
+      issueList.innerHTML =
+        "<p class='text-danger'>Configuration error: Issue data source missing.</p>";
+    // No point continuing if data source is missing, maybe return or disable forms.
   }
 
+  // Check if the display list exists
   if (!issueList) {
-    console.error("Element with ID 'issues-list' not found.");
-    // Optionally disable forms if the list doesn't exist
+    console.error(
+      "Required element with ID 'issues-list' not found. Cannot display issues."
+    );
+    // Forms won't work without a place to display results.
   }
 
   // --- Filter Form Logic ---
   const filterIssueForm = document.getElementById("filter-issue-form");
 
   if (filterIssueForm && issueList) {
-    // Only add listener if form and list exist
+    // Only add listener if form and list container exist
     filterIssueForm.addEventListener("submit", function (e) {
-      e.preventDefault(); // Prevent default submission FIRST
-      console.log("Filter form submitted, preventing default."); // Debug log
+      e.preventDefault(); // Prevent default form submission (page reload/redirect)
+      console.log("Filter form submitted, default action prevented.");
 
       try {
-        // Wrap filtering logic in try...catch
-        let filteredIssues = [];
-
-        // Get selected labels
+        // Get selected labels (array of values)
         const labelsElements = [
           ...filterIssueForm.querySelectorAll("input[type=checkbox]:checked"),
         ];
         const selectedLabels = labelsElements.map((el) => el.value);
+        console.log("Selected Labels:", selectedLabels);
 
-        // Get selected author (handle if none is checked)
+        // Get selected author (string value, or "" if none selected)
         const checkedAuthorRadio = filterIssueForm.querySelector(
           "input[type=radio][name=author]:checked"
         );
         const selectedAuthor = checkedAuthorRadio
           ? checkedAuthorRadio.value
-          : ""; // Default to empty string if none checked
+          : "";
+        console.log("Selected Author:", selectedAuthor || "None");
+
+        let filteredIssues = []; // Array to hold issues matching filters
 
         // --- Filtering Core Logic ---
         if (selectedLabels.length === 0 && !selectedAuthor) {
-          // If no filters, show all issues
-          filteredIssues = [...issues]; // Copy all issues
+          // Case 1: No filters applied - show all issues
+          console.log("No filters applied, showing all issues.");
+          filteredIssues = [...issues]; // Create a copy of all issues
         } else {
+          // Case 2: Filters are applied - iterate and check each issue
+          console.log("Applying filters...");
           issues.forEach((issue) => {
-            // Default assumption: issue does not match
             let matchesAuthor = false;
             let matchesLabel = false;
 
-            // Check author match (only if an author is selected)
+            // Check author match (only if an author filter is active)
             if (selectedAuthor && issue.author === selectedAuthor) {
               matchesAuthor = true;
             }
 
-            // Check label match (only if labels are selected)
-            // Issue matches if *any* of its labels are in the selectedLabels list
+            // Check label match (only if label filters are active and issue has labels)
+            // An issue matches if *at least one* of its labels is in the selectedLabels array
             if (selectedLabels.length > 0 && Array.isArray(issue.labels)) {
-              // Check if ANY selected label is present in the issue's labels
               if (
-                selectedLabels.some((label) => issue.labels.includes(label))
+                selectedLabels.some((selectedLabel) =>
+                  issue.labels.includes(selectedLabel)
+                )
               ) {
                 matchesLabel = true;
               }
             }
 
-            // Include the issue if it matches author OR label (if filters are applied)
-            // OR if it matches the author AND no labels were selected
-            // OR if it matches a label AND no author was selected
-            if (
-              (selectedAuthor &&
-                selectedLabels.length > 0 &&
-                (matchesAuthor || matchesLabel)) || // Both filters active: OR logic
-              (selectedAuthor &&
-                selectedLabels.length === 0 &&
-                matchesAuthor) || // Only author filter active
-              (!selectedAuthor && selectedLabels.length > 0 && matchesLabel) // Only label filter active
-            ) {
-              // Avoid duplicates (though the logic above might prevent them, this is safer)
-              if (
-                !filteredIssues.some(
-                  (filteredIssue) => filteredIssue.id === issue.id
-                )
-              ) {
-                // Assuming issues have a unique 'id'
-                filteredIssues.push(issue);
-              } else if (!filteredIssues.includes(issue)) {
-                // Fallback if no ID
+            // Determine if the issue should be included based on filter logic (OR condition)
+            let includeIssue = false;
+            if (selectedAuthor && selectedLabels.length > 0) {
+              // Both filters active: Match EITHER Author OR Label
+              includeIssue = matchesAuthor || matchesLabel;
+            } else if (selectedAuthor) {
+              // Only Author filter active: Match Author
+              includeIssue = matchesAuthor;
+            } else if (selectedLabels.length > 0) {
+              // Only Label filter active: Match Label
+              includeIssue = matchesLabel;
+            }
+
+            // Add to results if it matches and isn't already included (handles OR logic cases)
+            if (includeIssue) {
+              // Basic check to avoid duplicates if an issue somehow matches multiple times in logic
+              // Using includes is less robust than ID check but works if objects are the same reference
+              if (!filteredIssues.includes(issue)) {
                 filteredIssues.push(issue);
               }
+              // If your issues have a unique ID (e.g., issue.id or issue._id):
+              /*
+                 if (!filteredIssues.some(fi => fi.id === issue.id)) {
+                     filteredIssues.push(issue);
+                 }
+                 */
             }
           });
+          console.log(
+            `Filtering complete. Found ${filteredIssues.length} matching issues.`
+          );
         }
 
         // --- Displaying Filtered Results ---
         renderIssues(filteredIssues, issueList);
       } catch (error) {
-        console.error("Error during filtering:", error);
-        // Optionally display an error message to the user on the page
+        // Log error and show message to user if filtering fails
+        console.error("Error during filtering process:", error);
         if (issueList)
           issueList.innerHTML =
-            "<p class='text-danger'>An error occurred while filtering issues.</p>";
+            "<p class='text-danger'>An error occurred while filtering issues. Check console for details.</p>";
       }
     });
+    console.log("Filter form event listener attached.");
   } else {
     if (!filterIssueForm)
-      console.error("Element with ID 'filter-issue-form' not found.");
+      console.warn(
+        "Element with ID 'filter-issue-form' not found. Filtering disabled."
+      );
+    if (!issueList && filterIssueForm)
+      console.warn(
+        "Filter form found, but no #issues-list to display results."
+      );
   }
 
   // --- Search Form Logic ---
   const searchIssueForm = document.getElementById("search-issue-form");
 
   if (searchIssueForm && issueList) {
-    // Only add listener if form and list exist
+    // Only add listener if form and list container exist
     searchIssueForm.addEventListener("submit", function (e) {
-      e.preventDefault(); // Prevent default submission FIRST
-      console.log("Search form submitted, preventing default."); // Debug log
+      e.preventDefault(); // Prevent default form submission (page reload/redirect)
+      console.log("Search form submitted, default action prevented.");
 
       try {
-        // Wrap searching logic in try...catch
-        let searchedIssuesResult = [];
-
-        // Get search terms (convert to lower case for case-insensitive search)
+        // Get search terms, convert to lower case, and trim whitespace
         const titleValue = (
           searchIssueForm.querySelector('input[name="tie"]')?.value || ""
         )
@@ -147,24 +202,34 @@ document.addEventListener("DOMContentLoaded", function () {
         )
           .toLowerCase()
           .trim();
+        console.log(
+          `Searching for Title: "${titleValue}", Description: "${descriptionValue}"`
+        );
+
+        let searchedIssuesResult = []; // Array to hold issues matching search
 
         // --- Searching Core Logic ---
         if (!titleValue && !descriptionValue) {
-          // If search fields are empty, show all issues (or maybe clear results?)
-          // Decide desired behavior - here showing all:
-          searchedIssuesResult = [...issues];
-          // Or to clear results: searchedIssuesResult = [];
+          // Case 1: Both search fields are empty - show all issues
+          // (Alternative: Clear results by setting searchedIssuesResult = [])
+          console.log("Search fields empty, showing all issues.");
+          searchedIssuesResult = [...issues]; // Create a copy of all issues
         } else {
+          // Case 2: At least one search field has text - iterate and check
+          console.log("Applying search criteria...");
           issues.forEach((issue) => {
+            // Ensure issue properties exist and convert to lowercase for comparison
             const issueTitle = (issue.title || "").toLowerCase();
             const issueDescription = (issue.description || "").toLowerCase();
 
             let titleMatch = false;
+            // Check title if title search term exists and issue title includes it
             if (titleValue && issueTitle.includes(titleValue)) {
               titleMatch = true;
             }
 
             let descriptionMatch = false;
+            // Check description if description search term exists and issue description includes it
             if (
               descriptionValue &&
               issueDescription.includes(descriptionValue)
@@ -172,94 +237,114 @@ document.addEventListener("DOMContentLoaded", function () {
               descriptionMatch = true;
             }
 
-            // Include if title matches (and title search term exists)
-            // OR if description matches (and description search term exists)
+            // Include the issue if EITHER the title matches OR the description matches
+            // Only consider a match if the corresponding search term was actually provided
             if (
               (titleValue && titleMatch) ||
               (descriptionValue && descriptionMatch)
             ) {
-              // Avoid duplicates (using ID if available)
-              if (
-                !searchedIssuesResult.some(
-                  (searchedIssue) => searchedIssue.id === issue.id
-                )
-              ) {
-                searchedIssuesResult.push(issue);
-              } else if (!searchedIssuesResult.includes(issue)) {
-                // Fallback if no ID
+              // Avoid duplicates
+              if (!searchedIssuesResult.includes(issue)) {
                 searchedIssuesResult.push(issue);
               }
+              // If your issues have a unique ID (e.g., issue.id or issue._id):
+              /*
+                 if (!searchedIssuesResult.some(si => si.id === issue.id)) {
+                    searchedIssuesResult.push(issue);
+                 }
+                 */
             }
           });
+          console.log(
+            `Search complete. Found ${searchedIssuesResult.length} matching issues.`
+          );
         }
 
         // --- Displaying Search Results ---
         renderIssues(searchedIssuesResult, issueList);
       } catch (error) {
-        console.error("Error during searching:", error);
+        // Log error and show message to user if searching fails
+        console.error("Error during searching process:", error);
         if (issueList)
           issueList.innerHTML =
-            "<p class='text-danger'>An error occurred while searching issues.</p>";
+            "<p class='text-danger'>An error occurred while searching issues. Check console for details.</p>";
       }
     });
+    console.log("Search form event listener attached.");
   } else {
     if (!searchIssueForm)
-      console.error("Element with ID 'search-issue-form' not found.");
+      console.warn(
+        "Element with ID 'search-issue-form' not found. Searching disabled."
+      );
+    if (!issueList && searchIssueForm)
+      console.warn(
+        "Search form found, but no #issues-list to display results."
+      );
   }
 
   // --- Helper Function to Render Issues ---
+  // Takes an array of issue objects and the target DOM element to render them into
   function renderIssues(issuesToRender, targetElement) {
-    if (!targetElement) return; // Don't proceed if target element doesn't exist
+    if (!targetElement) {
+      console.error("Render target element not provided or found.");
+      return; // Don't proceed if target element doesn't exist
+    }
 
-    targetElement.innerHTML = ""; // Clear previous results
+    console.log(`Rendering ${issuesToRender.length} issues...`);
+    targetElement.innerHTML = ""; // Clear previous results efficiently
 
+    // Handle case where no issues match the criteria
     if (issuesToRender.length === 0) {
       targetElement.innerHTML =
-        "<p>No issues found matching your criteria.</p>";
+        "<div class='alert alert-info w-100'>No issues found matching your criteria.</div>";
       return;
     }
 
+    // Iterate over the issues and create HTML for each
     issuesToRender.forEach((issue) => {
-      const Div = document.createElement("div");
-      // Div.style = "none"; // REMOVED - Invalid CSS
-      Div.classList.add("issue-card-container"); // Add a class for potential styling instead
+      const issueCardContainer = document.createElement("div");
+      issueCardContainer.classList.add("issue-card-container"); // Optional class for the container div
 
-      // Basic check for essential properties before rendering
-      const title = issue.title || "No Title";
+      // Basic check for essential properties before rendering, providing defaults
+      const title = issue.title || "No Title Provided";
       const author = issue.author || "Unknown Author";
-      const description = issue.description || "No Description";
-      // const labelsString = Array.isArray(issue.labels) ? issue.labels.join(", ") : "No Labels";
+      const description = issue.description || "No Description Provided";
+      const labelsString =
+        Array.isArray(issue.labels) && issue.labels.length > 0
+          ? `<p class="card-text mb-1"><small><strong>Labels:</strong> ${escapeHTML(
+              issue.labels.join(", ")
+            )}</small></p>`
+          : ""; // Generate labels string only if labels exist
 
-      Div.innerHTML = `
-        <div class="card w-100 mb-2">
+      // Use innerHTML to create the card structure for each issue
+      // Use escapeHTML to prevent XSS vulnerabilities from issue data
+      issueCardContainer.innerHTML = `
+        <div class="card w-100 mb-3 shadow-sm"> <!-- Added shadow-sm and more margin -->
           <div class="card-body">
-            <h4 class="card-title">Title : ${escapeHTML(title)} </h4>
-            <h5 class="card-title">Author : ${escapeHTML(author)}</h5>
-            <h6 class="card-subtitle mb-2 text-muted">
-              Description : ${escapeHTML(description)}
-            </h6>
-            <!-- Uncomment to display labels safely -->
-            <!-- ${
-              Array.isArray(issue.labels) && issue.labels.length > 0
-                ? `<p class="card-text"><small>Labels: ${escapeHTML(
-                    issue.labels.join(", ")
-                  )}</small></p>`
-                : ""
-            } -->
+            <h4 class="card-title mb-1"> ${escapeHTML(
+              title
+            )} </h4> <!-- Reduced margin -->
+            <h6 class="card-subtitle mb-2 text-muted">Author: ${escapeHTML(
+              author
+            )}</h6>
+            <p class="card-text mb-2"> <!-- Added margin bottom -->
+              ${escapeHTML(description)}
+            </p>
+            ${labelsString} <!-- Insert the labels paragraph if it exists -->
           </div>
         </div>
       `;
-      targetElement.appendChild(Div);
+      targetElement.appendChild(issueCardContainer); // Append the new card to the list
     });
+    console.log("Rendering complete.");
   }
 
-  // --- Helper function to escape HTML to prevent XSS ---
+  // --- Helper function to escape HTML special characters ---
+  // Prevents Cross-Site Scripting (XSS) when inserting data into HTML
   function escapeHTML(str) {
-    const div = document.createElement("div");
-    div.appendChild(document.createTextNode(str));
-    return div.innerHTML;
+    // Use the browser's built-in capabilities for robust escaping
+    const VIRTUAL_DIV = document.createElement("div");
+    VIRTUAL_DIV.textContent = str; // Setting textContent automatically escapes HTML
+    return VIRTUAL_DIV.innerHTML;
   }
-
-  // Initial rendering of all issues on page load (optional)
-  // renderIssues(issues, issueList);
-}); // End of DOMContentLoaded
+}); // --- End of DOMContentLoaded ---
