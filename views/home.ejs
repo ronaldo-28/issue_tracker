@@ -1,0 +1,97 @@
+<head>
+  <style>
+    .card {
+      background-color: #86D293;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+    /* .card:hover {
+      transform: translate3d(0, -5px, 0);
+      box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.2);
+    }
+    .card::before {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(to right, #ff00ff, #00ff00);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .card:hover::before {
+      opacity: 1;
+    } */
+  </style>
+</head>
+
+<body>
+  <!-- Your HTML code here -->
+  <div class="mb-5 p-5">
+    <% for( let project of projects ) { %>
+    <div class="card mb-2 w-50 m-auto">
+      <div class="card-header">
+        <strong> Name of the project : </strong>
+        <%= project.name %>
+      </div>
+      <div class="card-body">
+        <h6 class="card-subtitle mb-2 text-muted">
+          <strong> Author : </strong>
+          <%= project.author %>
+        </h6>
+        <p class="card-text">
+          <strong> Description : </strong>
+          <%= project.description %>
+        </p>
+
+        <div class="m-auto text-end">
+          <a href="/project/<%=project._id%>" class="btn btn-primary m-auto"
+            >Open project</a
+          >
+          <style>
+            .btn-primary {
+              position: relative;
+              display: inline-block;
+              padding: 0.75rem 1.5rem;
+              border: none;
+              border-radius: 5px;
+              background-color: #24A0ED;
+              color: white;
+              font-weight: bold;
+              text-transform: uppercase;
+              text-decoration: none;
+              overflow: hidden;
+            }
+          
+            /* .btn-primary:after {
+              content: "";
+              position: absolute;
+              top: 0;
+              left: -100%;
+              width: 100%;
+              height: 100%;
+              background: linear-gradient(
+                to right,
+                rgba(255, 0, 0, 1),
+                rgba(255, 0, 0, 0),
+                rgba(255, 0, 0, 0),
+                rgba(255, 0, 0, 1)
+              );
+              transform: skew(-20deg);
+              transition: 0.5s;
+            }
+          
+            .btn-primary:hover:after {
+              left: 100%;
+            } */
+          </style>
+
+          </style>
+        </div>
+      </div>
+    </div>
+    <% } %>
+  </div>
+</body>

@@ -1,0 +1,35 @@
+<!-- views/partials/_header.ejs -->
+<nav
+  class="navbar navbar-expand-sm"
+  style="background-color: rgb(95, 179, 240)"
+>
+  <div class="container-fluid">
+    <!-- Brand logo with a link to the homepage -->
+    <a
+      class="navbar-brand ms-4"
+      href="/"
+      style="font-weight: bolder; color: white"
+      >Issue Tracker
+    </a>
+
+    <!-- Conditional inclusion of different forms based on the value of the "title" variable -->
+    <% if( title === "Project Page"){ %> <%- include('_issue_form'); %> <%
+    }else{ %> <%- include('_project_form'); %> <% } %>
+
+    <!-- ADDED: Theme Toggle Button -->
+    <!-- ms-auto pushes this button to the right -->
+    <button id="theme-toggle-btn" class="btn btn-outline-light ms-auto me-2">
+      Toggle Theme
+    </button>
+    <!-- End of Added Button -->
+  </div>
+
+  <!-- Commented-out internal CSS style block -->
+  <!-- <style>
+    /* Styling for the brand logo on hover */
+    .navbar-brand:hover {
+      color: red;
+      position: fixed;
+    }
+  </style> -->
+</nav>

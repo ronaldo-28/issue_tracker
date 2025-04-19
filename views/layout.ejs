@@ -1,0 +1,175 @@
+<!-- views/layout.ejs -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= title %></title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/noty/3.1.4/noty.min.css"
+    />
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <!-- Removed redundant title tag -->
+
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor"
+      crossorigin="anonymous"
+    />
+
+    <!-- START: Added Theme Styles -->
+    <style>
+      /* Basic transition */
+      body {
+        transition: background-color 0.3s ease, color 0.3s ease;
+      }
+
+      /* Dark theme styles */
+      body.dark-theme {
+        background-color: #212529; /* Bootstrap dark background */
+        color: #f8f9fa; /* Bootstrap light text */
+      }
+
+      body.dark-theme .navbar {
+        background-color: #343a40 !important; /* Darker navbar, override inline */
+        border-bottom: 1px solid #495057;
+      }
+      body.dark-theme .navbar-brand {
+        color: #f8f9fa !important; /* Override inline style */
+      }
+      /* Adjust theme toggle button for dark mode */
+      body.dark-theme #theme-toggle-btn {
+        color: #f8f9fa;
+        border-color: #f8f9fa;
+      }
+      body.dark-theme #theme-toggle-btn:hover {
+        background-color: #f8f9fa;
+        color: #343a40;
+      }
+
+      body.dark-theme .card {
+        background-color: #343a40 !important; /* Override potential inline styles */
+        border-color: #495057;
+        color: #f8f9fa;
+      }
+      body.dark-theme .card-header {
+        background-color: #495057;
+        border-bottom-color: #6c757d;
+      }
+      body.dark-theme .text-muted {
+        color: #adb5bd !important; /* Bootstrap muted text in dark */
+      }
+
+      body.dark-theme .modal-content {
+        background-color: #343a40;
+        color: #f8f9fa;
+        border-color: #495057;
+      }
+      body.dark-theme .modal-header {
+        background-color: #495057 !important; /* Override inline styles */
+        border-bottom: 1px solid #6c757d;
+      }
+      body.dark-theme .modal-footer {
+        border-top: 1px solid #6c757d;
+      }
+      body.dark-theme .modal-header .btn-close {
+        filter: invert(1) grayscale(100%) brightness(200%); /* Make Bootstrap close button white */
+      }
+      body.dark-theme .modal-header h5 {
+        color: #f8f9fa !important; /* Override potential inline styles on title */
+      }
+
+      body.dark-theme form {
+        background-color: #495057 !important; /* Override inline form background */
+      }
+      body.dark-theme .form-label,
+      body.dark-theme .form-check-label {
+        color: #f8f9fa;
+      }
+      body.dark-theme .form-control {
+        background-color: #6c757d;
+        color: #f8f9fa;
+        border-color: #868e96;
+      }
+      body.dark-theme .form-control::placeholder {
+        color: #ced4da;
+      }
+      body.dark-theme .form-check-input:checked {
+        background-color: #0d6efd; /* Keep checkbox checked color consistent */
+        border-color: #0d6efd;
+      }
+      body.dark-theme .form-check-input {
+        background-color: #6c757d;
+        border-color: #868e96;
+      }
+
+      body.dark-theme .footer {
+        background-color: #343a40 !important; /* Override inline styles */
+        color: #f8f9fa !important;
+        border-top: 1px solid #495057;
+      }
+      body.dark-theme .footer .blockquote-footer cite {
+        color: #adb5bd; /* Adjust cite color */
+      }
+
+      /* Add more selectors as needed for other elements */
+    </style>
+    <!-- END: Added Theme Styles -->
+
+    <%- style %>
+    <!-- Placeholder for page-specific styles -->
+  </head>
+
+  <body>
+    <%- include('./partials/_header'); %> <%- body %> <%-
+    include('./partials/_footer'); %>
+
+    <!-- JavaScript Bundle with Popper -->
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-pprn3073KE6tl6bjs2QrFaJGz5/SUsLqktiwsUTF55Jfv3qYSDhgCecCxMW52nD2"
+      crossorigin="anonymous"
+    ></script>
+
+    <!-- START: Added Theme Toggle Script -->
+    <script>
+      // Wait for the DOM to be fully loaded
+      document.addEventListener("DOMContentLoaded", () => {
+        const themeToggleButton = document.getElementById("theme-toggle-btn");
+        const body = document.body;
+        // Check localStorage for saved theme preference
+        const currentTheme = localStorage.getItem("theme");
+
+        // Apply saved theme on initial load
+        if (currentTheme === "dark") {
+          body.classList.add("dark-theme");
+        }
+        // Optional: check system preference if no saved theme
+        // else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        //    body.classList.add('dark-theme');
+        // }
+
+        // Add click listener to the toggle button
+        themeToggleButton.addEventListener("click", () => {
+          // Toggle the .dark-theme class on the body
+          body.classList.toggle("dark-theme");
+
+          // Determine the new theme state and save it to localStorage
+          let theme = "light"; // Default to light
+          if (body.classList.contains("dark-theme")) {
+            theme = "dark"; // If class is present, theme is dark
+          }
+          localStorage.setItem("theme", theme); // Save the current theme preference
+        });
+      });
+    </script>
+    <!-- END: Added Theme Toggle Script -->
+
+    <%- script%>
+    <!-- Placeholder for page-specific scripts -->
+  </body>
+</html>
